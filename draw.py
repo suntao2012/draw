@@ -13,6 +13,7 @@ import tensorflow as tf
 from tensorflow.examples.tutorials import mnist
 import numpy as np
 import os
+import time
 
 tf.flags.DEFINE_string("data_dir", "", "")
 tf.flags.DEFINE_boolean("read_attn", True, "enable attention for reader")
@@ -31,7 +32,7 @@ read_size = 2*read_n*read_n if FLAGS.read_attn else 2*img_size
 write_size = write_n*write_n if FLAGS.write_attn else img_size
 z_size=10 # QSampler output size
 T=10 # MNIST generation sequence length
-batch_size=100 # training minibatch size
+batch_size=128 # training minibatch size
 train_iters=10000
 learning_rate=1e-3 # learning rate for optimizer
 eps=1e-8 # epsilon for numerical stability
@@ -211,7 +212,8 @@ if not os.path.exists(data_directory):
 train_data = mnist.input_data.read_data_sets(data_directory, one_hot=True).train # binarized (0-1) mnist data
 
 fetches=[]
-fetches.extend([Lx,Lz,train_op])
+#fetches.extend([Lx,Lz,train_op])
+fetches.extend([Lx,Lz,cost])
 Lxs=[0]*train_iters
 Lzs=[0]*train_iters
 
@@ -224,10 +226,15 @@ tf.global_variables_initializer().run()
 for i in range(train_iters):
 	xtrain,_=train_data.next_batch(batch_size) # xtrain is (batch_size x img_size)
 	feed_dict={x:xtrain}
-	results=sess.run(fetches,feed_dict)
+
+	start_time = time.time()
+	for j in range(100):
+		results=sess.run(fetches,feed_dict)
+	duration = time.time() - start_time
+	
 	Lxs[i],Lzs[i],_=results
-	if i%100==0:
-		print("iter=%d : Lx: %f Lz: %f" % (i,Lxs[i],Lzs[i]))
+	#if i%100==0:
+	print("iter=%d : Lx: %f Lz: %f, duration: %f, time per batch: %f, batchsize: %d" % (100,Lxs[i],Lzs[i], duration, duration/100, batch_size))
 
 ## TRAINING FINISHED ## 
 
